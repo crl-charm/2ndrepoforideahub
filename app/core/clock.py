@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 
-
-class Clock:
-    def utcnow(self) -> datetime:  # pragma: no cover
-        raise NotImplementedError
+from app.core.interfaces import Clock
 
 
-@dataclass(frozen=True)
 class SystemClock(Clock):
-    def utcnow(self) -> datetime:
+    """Default clock implementation used across services."""
+
+    def now(self) -> datetime:
         return datetime.utcnow()
+
+    def utcnow(self) -> datetime:
+        # Backward-compat helper for existing call sites.
+        return self.now()
 

@@ -1,24 +1,7 @@
-from __future__ import annotations
+"""Compatibility re-export module."""
 
-from dataclasses import dataclass
-from typing import Any, Dict
+from app.core.interfaces import Notifier
+from app.core.notifiers import NoopNotifier, SocketIONotifier
 
-
-class Notifier:
-    def session_checked_out(self, payload: Dict[str, Any]) -> None:  # pragma: no cover
-        raise NotImplementedError
-
-
-@dataclass(frozen=True)
-class NoopNotifier(Notifier):
-    def session_checked_out(self, payload: Dict[str, Any]) -> None:
-        return
-
-
-@dataclass(frozen=True)
-class SocketIONotifier(Notifier):
-    socketio: Any
-
-    def session_checked_out(self, payload: Dict[str, Any]) -> None:
-        self.socketio.emit("session_checked_out", payload)
+__all__ = ["Notifier", "NoopNotifier", "SocketIONotifier"]
 
