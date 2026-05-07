@@ -5,6 +5,7 @@ from flask_socketio import SocketIO
 
 # Create database object
 db = SQLAlchemy()
+_sqlalchemy_db = db
 socketio = SocketIO(cors_allowed_origins="*")
 
 
