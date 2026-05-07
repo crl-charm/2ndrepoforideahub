@@ -213,6 +213,68 @@ function dismissToast(toast) {
 }
 </script>
 
+<script>
+  // A small helper to reduce background traffic:
+  // - pauses polling when tab is hidden
+  // - avoids overlapping calls if the previous tick is still running
+  window.createSmartPoller = function createSmartPoller(fn, intervalMs, opts) {
+    opts = opts || {};
+    const runImmediately = opts.runImmediately !== false;
+    const minIntervalMs = Math.max(1000, Number(intervalMs) || 1000);
+    let timer = null;
+    let stopped = false;
+    let inFlight = false;
+
+    async function tick() {
+      if (stopped) return;
+      if (document.hidden) {
+        schedule();
+        return;
+      }
+      if (inFlight) {
+        schedule();
+        return;
+      }
+      inFlight = true;
+      try {
+        await fn();
+      } catch (_) {
+        // swallow
+      } finally {
+        inFlight = false;
+        schedule();
+      }
+    }
+
+    function schedule() {
+      if (stopped) return;
+      timer = window.setTimeout(tick, minIntervalMs);
+    }
+
+    function stop() {
+      stopped = true;
+      if (timer) window.clearTimeout(timer);
+      timer = null;
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && !stopped) {
+        // run a refresh soon after returning to the tab
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(tick, 250);
+      }
+    });
+
+    if (runImmediately) {
+      window.setTimeout(tick, 0);
+    } else {
+      schedule();
+    }
+
+    return { stop };
+  };
+</script>
+
 {% block scripts %}
 {% endblock %}
 <script>
@@ -241,48 +303,47 @@ function dismissToast(toast) {
 </script>
 
 <script>
-  function updateOrdersBadge() {
+  async function updateOrdersBadge() {
     const badge = document.getElementById("orders-badge");
     if (!badge) return;
 
-    fetch("/api/orders/pending-count", { credentials: "include" })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => {
-        if (!data) return;
-        const count = Number(data.pending_sessions || 0);
-        if (count > 0) {
-          badge.textContent = String(count);
-          badge.style.display = "inline-block";
-        } else {
-          badge.style.display = "none";
-        }
-      })
-      .catch(() => {});
+    try {
+      const res = await fetch("/api/orders/pending-count", { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json();
+      const count = Number((data && data.pending_sessions) || 0);
+      if (count > 0) {
+        badge.textContent = String(count);
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+    } catch (_) {}
   }
 
-  updateOrdersBadge();
-  setInterval(updateOrdersBadge, 5000);
+  // 15s is plenty for a badge and dramatically reduces traffic.
+  window.createSmartPoller(updateOrdersBadge, 15000);
 </script>
 
 <script>
   (function boardroomOverdueNotifier() {
     const alerted = new Set();
-    function poll() {
-      fetch("/api/lounge-bookings/overdue-alerts", { credentials: "include" })
-        .then(res => res.ok ? res.json() : [])
-        .then(data => {
-          if (!Array.isArray(data)) return;
-          data.forEach(row => {
-            const key = String(row.booking_id);
-            if (alerted.has(key)) return;
-            alerted.add(key);
-            showToast(`Boardroom session for ${row.customer_name} is over time. Extend or checkout now.`, "warning");
-          });
-        })
-        .catch(() => {});
+    async function poll() {
+      try {
+        const res = await fetch("/api/lounge-bookings/overdue-alerts", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data)) return;
+        data.forEach(row => {
+          const key = String(row.booking_id);
+          if (alerted.has(key)) return;
+          alerted.add(key);
+          showToast(`Boardroom session for ${row.customer_name} is over time. Extend or checkout now.`, "warning");
+        });
+      } catch (_) {}
     }
-    poll();
-    setInterval(poll, 15000);
+    // Overdue is not second-by-second critical; 60s is enough, and we pause when hidden.
+    window.createSmartPoller(poll, 60000);
   })();
 </script>
 

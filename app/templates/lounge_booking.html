@@ -485,6 +485,6 @@ function goToCheckout(sessionId) {
 }
 
 loadSchedule();
-setInterval(loadSchedule, 15000);
+window.createSmartPoller(loadSchedule, 30000);
 </script>
 {% endblock %}

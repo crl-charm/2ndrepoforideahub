@@ -145,7 +145,6 @@
 
 {% block scripts %}
 
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 
 let currentFilter = "all";
@@ -441,17 +440,15 @@ function loadSessions() {
 }
 
 // REALTIME UPDATES
-const socket = io();
-socket.on("session_checked_out", function () {
-    loadSessions();
-});
+// Socket.IO causes heavy long-poll traffic on Vercel serverless.
+// Keep lightweight polling instead.
 
 
 // INIT
 loadSessions();
 loadSpaceAvailability();
-setInterval(loadSessions, 5000);
-setInterval(loadSpaceAvailability, 5000);
+window.createSmartPoller(loadSessions, 10000);
+window.createSmartPoller(loadSpaceAvailability, 15000);
 
 </script>
 

@@ -4,12 +4,15 @@ from datetime import timedelta
 from app.utils.auth import login_required
 
 from app import db
-from app.models import Order, OrderItem, MenuItem, CustomerSession
-from sqlalchemy import func
+from app.models import Order, OrderItem, CustomerSession
+from app.repositories.order_repository import OrderRepository
+from app.services.order_service import OrderService
 
 
 # Blueprint for order related routes
 order_bp = Blueprint("order_routes", __name__)
+
+_service = OrderService(repo=OrderRepository())
 
 
 # ----------------------------------
@@ -18,20 +21,7 @@ order_bp = Blueprint("order_routes", __name__)
 @order_bp.route("/api/menu")
 @login_required
 def get_menu():
-
-    items = MenuItem.query.all()
-
-    result = []
-
-    for item in items:
-        result.append({
-            "id": item.id,
-            "name": item.name,
-            "price": float(item.price),
-            "category": item.category
-        })
-
-    return jsonify(result)
+    return jsonify(_service.list_menu())
 
 
 # ----------------------------------
@@ -48,42 +38,12 @@ def add_order():
 
     if not session_id or not items:
         return jsonify({"error": "session_id and items are required"}), 400
-
-    session = CustomerSession.query.get(session_id)
-
-    if not session:
-        return jsonify({"error": "Session not found"}), 404
-
-    # create order — capture who placed it
     handled_by = flask_session.get("user_id")
-    new_order = Order(customer_session_id=session_id, status="preparing", handled_by=handled_by)
-
-    db.session.add(new_order)
-    db.session.commit()
-
-    # add items
-    for item in items:
-
-        menu_item = MenuItem.query.get(item["menu_item_id"])
-
-        if not menu_item:
-            continue
-
-        order_item = OrderItem(
-            order_id=new_order.id,
-            menu_item_id=menu_item.id,
-            quantity=item.get("quantity", 1),
-            price=menu_item.price
-        )
-
-        db.session.add(order_item)
-
-    db.session.commit()
-
-    return jsonify({
-        "message": "Order added successfully",
-        "order_id": new_order.id
-    })
+    resp = _service.add_order(session_id=int(session_id), items=items, handled_by=handled_by)
+    if isinstance(resp, tuple):
+        payload, status = resp
+        return jsonify(payload), status
+    return jsonify(resp)
 
 
 # ----------------------------------
@@ -94,35 +54,11 @@ def add_order():
 def update_order_status(order_id):
     data = request.get_json(silent=True) or {}
     new_status = data.get("status")
-
-    # Backward compatible: older orders may still store "preparin".
-    if new_status not in {"preparin", "preparing", "serving", "done"}:
-        return jsonify({"error": "Invalid status"}), 400
-
-    order = Order.query.get(order_id)
-    if not order:
-        return jsonify({"error": "Order not found"}), 404
-
-    sess = CustomerSession.query.get(order.customer_session_id)
-    if not sess or sess.status != "active":
-        return jsonify({"error": "Cannot update inactive session orders"}), 400
-
-    # Only allow the requested flow:
-    # - preparing (or legacy "preparin") -> serving
-    # - serving -> done
-    if new_status == "serving":
-        if order.status not in {"preparin", "preparing"}:
-            return jsonify({"error": "Order must be in preparing before serving"}), 400
-    elif new_status == "done":
-        if order.status != "serving":
-            return jsonify({"error": "Order must be in serving before done"}), 400
-    else:
-        return jsonify({"error": "This action is not supported"}), 400
-
-    order.status = new_status
-    db.session.commit()
-
-    return jsonify({"message": "Order status updated", "order_id": order_id, "status": order.status})
+    resp = _service.update_order_status(order_id=order_id, new_status=new_status)
+    if isinstance(resp, tuple):
+        payload, status = resp
+        return jsonify(payload), status
+    return jsonify(resp)
 
 
 # ----------------------------------
@@ -134,53 +70,7 @@ def get_session_orders(session_id):
     # By default, hide completed orders ("done") from the customer orders page.
     # The dashboard receipt needs them, so it can call with `?include_done=1`.
     include_done = request.args.get("include_done", "0").lower() in {"1", "true", "yes"}
-
-    session = CustomerSession.query.get(session_id)
-    if not session or session.status != "active":
-        return jsonify({
-            "session_id": session_id,
-            "customer_name": session.customer_name if session else None,
-            "space_type": session.space_type.name if session and session.space_type else None,
-            "time_in": (session.time_in + timedelta(hours=8)).strftime("%B %d, %Y %I:%M %p") if session and session.time_in else None,
-            "orders": [],
-            "food_total": 0.0
-        })
-
-    orders_query = Order.query.filter_by(customer_session_id=session_id)
-    if not include_done:
-        orders_query = orders_query.filter(Order.status != "done")
-    orders = orders_query.all()
-
-    order_list = []
-    food_total = Decimal("0.00")
-
-    for order in orders:
-
-        for item in order.items:
-
-            total_price = item.quantity * item.price
-            food_total += total_price
-
-            order_list.append({
-                "id": item.id,
-                "order_id": order.id,
-                "order_status": order.status,
-                "item_status": item.status if item.status else "preparing",
-                "handled_by_name": order.handler.full_name if order.handler else "N/A",
-                "item_name": item.menu_item.name,
-                "quantity": item.quantity,
-                "price": float(item.price),
-                "total": float(total_price)
-            })
-
-    return jsonify({
-        "session_id": session_id,
-        "customer_name": session.customer_name if session else None,
-        "space_type": session.space_type.name if session and session.space_type else None,
-        "time_in": (session.time_in + timedelta(hours=8)).strftime("%B %d, %Y %I:%M %p") if session and session.time_in else None,
-        "orders": order_list,
-        "food_total": float(food_total)
-    })
+    return jsonify(_service.get_session_orders(session_id=session_id, include_done=include_done))
 
 
 @order_bp.route("/order/<int:session_id>")
@@ -247,32 +137,7 @@ def orders_list_api():
 @order_bp.route("/api/orders/pending-count")
 @login_required
 def orders_pending_count():
-    """
-    Used by the navbar badge to indicate there are active (non-done) orders.
-    We count distinct active sessions with at least one order item that isn't done.
-    """
-    pending_sessions = (
-        db.session.query(func.count(func.distinct(Order.customer_session_id)))
-        .join(CustomerSession, CustomerSession.id == Order.customer_session_id)
-        .filter(CustomerSession.status == "active")
-        .filter(Order.status != "done")
-        .scalar()
-    ) or 0
-
-    pending_items = (
-        db.session.query(func.coalesce(func.sum(OrderItem.quantity), 0))
-        .select_from(OrderItem)
-        .join(Order, OrderItem.order_id == Order.id)
-        .join(CustomerSession, CustomerSession.id == Order.customer_session_id)
-        .filter(CustomerSession.status == "active")
-        .filter(Order.status != "done")
-        .scalar()
-    ) or 0
-
-    return jsonify({
-        "pending_sessions": int(pending_sessions),
-        "pending_items": int(pending_items)
-    })
+    return jsonify(_service.pending_count())
 
 
 @order_bp.route("/orders/<int:session_id>")

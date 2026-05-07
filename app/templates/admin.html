@@ -707,9 +707,9 @@ loadUsers();
 loadCustomerStats();
 loadStaffAnalytics();
 loadCapacity();
-setInterval(loadUsers, 15000);
-setInterval(loadStaffAnalytics, 15000);
-setInterval(loadCapacity, 20000);
+window.createSmartPoller(loadUsers, 30000);
+window.createSmartPoller(loadStaffAnalytics, 60000);
+window.createSmartPoller(loadCapacity, 60000);
 
 </script>
 {% endblock %}
