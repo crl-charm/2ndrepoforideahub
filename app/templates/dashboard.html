@@ -16,7 +16,8 @@
         <input 
             type="text" 
             id="searchInput" 
-            class="form-control w-25" 
+            class="form-control"
+            style="max-width: 280px;"
             placeholder="Search customer..."
             oninput="loadSessions()"
         >
@@ -58,13 +59,13 @@
           <thead style="background:#f7f3c7;">
             <tr>
               <th>Customer</th>
-              <th>School</th>
-              <th>Course</th>
-              <th>Purpose</th>
+              <th class="d-none d-md-table-cell">School</th>
+              <th class="d-none d-md-table-cell">Course</th>
+              <th class="d-none d-md-table-cell">Purpose</th>
               <th>Space</th>
               <th>Time In</th>
-              <th>Duration</th>
-              <th>Current Bill</th>
+              <th class="d-none d-md-table-cell">Duration</th>
+              <th class="d-none d-md-table-cell">Current Bill</th>
               <th class="text-end">Actions</th>
             </tr>
           </thead>
@@ -79,7 +80,7 @@
 
 <!-- RECEIPT MODAL -->
 <div class="modal fade" id="receiptModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
 
       <div class="modal-header">
@@ -100,7 +101,7 @@
 
 <!-- CHECK-IN MODAL -->
 <div class="modal fade" id="checkinModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
 
       <div class="modal-header">
@@ -406,19 +407,19 @@ function loadSessions() {
             container.innerHTML += `
                 <tr>
                     <td>${session.customer_name}</td>
-                    <td>${session.school || "N/A"}</td>
-                    <td>${session.course || "N/A"}</td>
-                    <td>${session.space_type === "Boardroom" ? (session.purpose || "N/A") : "—"}</td>
+                    <td class="d-none d-md-table-cell">${session.school || "N/A"}</td>
+                    <td class="d-none d-md-table-cell">${session.course || "N/A"}</td>
+                    <td class="d-none d-md-table-cell">${session.space_type === "Boardroom" ? (session.purpose || "N/A") : "—"}</td>
                     <td>${session.space_type}</td>
                     <td>${session.time_in}</td>
-                    <td>${formatTime(session.seconds_used)}</td>
-                    <td>₱${session.current_bill.toFixed(2)}</td>
+                    <td class="d-none d-md-table-cell">${formatTime(session.seconds_used)}</td>
+                    <td class="d-none d-md-table-cell">₱${session.current_bill.toFixed(2)}</td>
                     <td class="text-end">
-                        <button class="btn btn-primary btn-sm me-1"
+                        <button class="btn btn-primary btn-sm py-2 me-1"
                             onclick="goToOrder(${session.session_id})">
                             Add Order
                         </button>
-                        <button class="btn btn-warning btn-sm"
+                        <button class="btn btn-warning btn-sm py-2"
                             onclick="viewOrder(${session.session_id})">
                             View Order
                         </button>

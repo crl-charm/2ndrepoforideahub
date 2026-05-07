@@ -18,10 +18,10 @@
           <tr>
             <th>Customer</th>
             <th>Space</th>
-            <th>Time In</th>
+            <th class="d-none d-md-table-cell">Time In</th>
             <th>Items</th>
             <th>Status</th>
-            <th>Food Total</th>
+            <th class="d-none d-md-table-cell">Food Total</th>
             <th class="text-end">Action</th>
           </tr>
         </thead>
@@ -58,12 +58,12 @@ function loadOrdersList() {
         <tr>
           <td>${r.customer_name}</td>
           <td>${r.space_type}</td>
-          <td>${r.time_in}</td>
+          <td class="d-none d-md-table-cell">${r.time_in}</td>
           <td>${r.orders_count}</td>
           <td>${r.active_order_status === "preparin" ? "preparing" : (r.active_order_status || "preparing")}</td>
-          <td>₱${r.food_total.toFixed(2)}</td>
+          <td class="d-none d-md-table-cell">₱${r.food_total.toFixed(2)}</td>
           <td class="text-end">
-            <a class="btn btn-primary btn-sm" href="/orders/${r.session_id}">View Orders</a>
+            <a class="btn btn-primary btn-sm py-2" href="/orders/${r.session_id}">View Orders</a>
           </td>
         </tr>
       `).join("");

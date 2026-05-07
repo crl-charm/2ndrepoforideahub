@@ -49,10 +49,10 @@
           <tr>
             <th>Customer</th>
             <th>Time</th>
-            <th>Course</th>
-            <th>People</th>
+            <th class="d-none d-md-table-cell">Course</th>
+            <th class="d-none d-md-table-cell">People</th>
             <th>Status</th>
-            <th>Purpose</th>
+            <th class="d-none d-md-table-cell">Purpose</th>
             <th class="text-end">Actions</th>
           </tr>
         </thead>
@@ -63,7 +63,7 @@
 </div>
 
 <div class="modal fade" id="bookingModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title"><i class="bi bi-calendar-check me-2 text-warning"></i>New Boardroom Booking</h5>
@@ -116,7 +116,7 @@
 </div>
 
 <div class="modal fade" id="extendModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-sm">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Extend Boardroom Time</h5>
@@ -150,7 +150,7 @@
 </div>
 
 <div class="modal fade" id="actionConfirmModal" tabindex="-1">
-  <div class="modal-dialog modal-sm">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-sm">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="confirm-title">Confirm Action</h5>
@@ -308,10 +308,10 @@ function renderList(bookings) {
       <tr>
         <td>${b.customer_name}</td>
         <td>${fmt12(b.start_time)} - ${fmt12(b.end_time)}</td>
-        <td>${b.course || "N/A"}</td>
-        <td>${b.number_of_people}</td>
+        <td class="d-none d-md-table-cell">${b.course || "N/A"}</td>
+        <td class="d-none d-md-table-cell">${b.number_of_people}</td>
         <td>${badgeFor(b.status)}</td>
-        <td>${purposeText}</td>
+        <td class="d-none d-md-table-cell">${purposeText}</td>
         <td class="text-end">${actions}</td>
       </tr>
     `;

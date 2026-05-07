@@ -117,6 +117,9 @@ body {
 .btn {
   border-radius: 10px;
   font-weight: 600;
+  min-height: 44px;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
 .btn-primary,
@@ -246,4 +249,17 @@ body {
 
 .auth-link:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 767.98px) {
+  .content {
+    margin-left: 0;
+    margin-top: 74px;
+    padding: 12px;
+  }
+
+  .top-nav-link {
+    width: 100%;
+    display: block;
+  }
 }

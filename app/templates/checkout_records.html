@@ -36,7 +36,7 @@
         oninput="loadCheckoutRecords()"
         title="To date"
       >
-      <button class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">Clear</button>
+      <button class="btn btn-outline-secondary btn-sm py-2" onclick="clearFilters()">Clear</button>
     </div>
   </div>
 
@@ -133,12 +133,12 @@ function loadCheckoutRecords() {
                 <thead>
                   <tr>
                     <th>Customer</th>
-                    <th>Space</th>
-                    <th>Time In</th>
-                    <th>Time Out</th>
-                    <th>Time Spent</th>
-                    <th>Time Bill</th>
-                    <th>Food Bill</th>
+                    <th class="d-none d-md-table-cell">Space</th>
+                    <th class="d-none d-md-table-cell">Time In</th>
+                    <th class="d-none d-md-table-cell">Time Out</th>
+                    <th class="d-none d-md-table-cell">Time Spent</th>
+                    <th class="d-none d-md-table-cell">Time Bill</th>
+                    <th class="d-none d-md-table-cell">Food Bill</th>
                     <th>Total</th>
                   </tr>
                 </thead>
@@ -146,12 +146,12 @@ function loadCheckoutRecords() {
                   ${records.map(record => `
                     <tr>
                       <td>${record.customer_name}</td>
-                      <td>${record.space_type}</td>
-                      <td>${record.time_in}</td>
-                      <td>${record.time_out}</td>
-                      <td>${formatTime(record.seconds_spent)}</td>
-                      <td>₱${record.time_bill.toFixed(2)}</td>
-                      <td>₱${record.food_bill.toFixed(2)}</td>
+                      <td class="d-none d-md-table-cell">${record.space_type}</td>
+                      <td class="d-none d-md-table-cell">${record.time_in}</td>
+                      <td class="d-none d-md-table-cell">${record.time_out}</td>
+                      <td class="d-none d-md-table-cell">${formatTime(record.seconds_spent)}</td>
+                      <td class="d-none d-md-table-cell">₱${record.time_bill.toFixed(2)}</td>
+                      <td class="d-none d-md-table-cell">₱${record.food_bill.toFixed(2)}</td>
                       <td><strong>₱${record.total_bill.toFixed(2)}</strong></td>
                     </tr>
                   `).join("")}

@@ -24,10 +24,10 @@
           <tr>
             <th>Item</th>
             <th>Qty</th>
-            <th>Price</th>
+            <th class="d-none d-md-table-cell">Price</th>
             <th>Status</th>
             <th>Action</th>
-            <th>Total</th>
+            <th class="d-none d-md-table-cell">Total</th>
           </tr>
         </thead>
         <tbody id="orders-view-container">
@@ -76,19 +76,19 @@ function loadOrders() {
           <tr>
             <td>${item.item_name}</td>
             <td>${item.quantity}</td>
-            <td>₱${item.price.toFixed(2)}</td>
+            <td class="d-none d-md-table-cell">₱${item.price.toFixed(2)}</td>
             <td>
               <span class="badge ${isPreparing ? 'bg-warning text-dark' : 'bg-success'}">
                 ${statusLabel}
               </span>
             </td>
             <td>
-              <button class="btn btn-sm ${btnClass}"
+              <button class="btn btn-sm py-2 ${btnClass}"
                       onclick="toggleItemStatus(${item.id})">
                 ${btnLabel}
               </button>
             </td>
-            <td>₱${item.total.toFixed(2)}</td>
+            <td class="d-none d-md-table-cell">₱${item.total.toFixed(2)}</td>
           </tr>
         `;
       }).join("");

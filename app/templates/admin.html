@@ -82,15 +82,15 @@
 
   <!-- USERS TABLE -->
   <div class="card shadow-sm">
-    <div class="card-body p-0">
+    <div class="card-body p-0 table-responsive">
       <table class="table table-hover mb-0">
         <thead style="background:#f7f3c7;">
           <tr>
             <th class="ps-4">Name</th>
-            <th>Username</th>
+            <th class="d-none d-md-table-cell">Username</th>
             <th>Job Role</th>
-            <th>Status</th>
-            <th>Created</th>
+            <th class="d-none d-md-table-cell">Status</th>
+            <th class="d-none d-md-table-cell">Created</th>
             <th class="text-end pe-4">Actions</th>
           </tr>
         </thead>
@@ -153,7 +153,7 @@
 
 <!-- CUSTOMER RECORDS MODAL -->
 <div class="modal fade" id="customerRecordsModal" tabindex="-1">
-  <div class="modal-dialog modal-xl">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-xl">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Customer Records</h5>
@@ -183,7 +183,7 @@
 
 <!-- STAFF ATTENDANCE MODAL -->
 <div class="modal fade" id="staffAttendanceModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Staff Time In/Out</h5>
@@ -212,7 +212,7 @@
  
 <!-- ADD USER MODAL -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
 
       <div class="modal-header">
@@ -256,7 +256,7 @@
 
 <!-- EDIT USER MODAL -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
     <div class="modal-content">
 
       <div class="modal-header">
@@ -361,10 +361,10 @@ function loadUsers() {
     tbody.innerHTML = filtered.map(u => `
       <tr>
         <td class="ps-4 fw-semibold">${u.name}</td>
-        <td class="text-muted">@${u.username}</td>
+        <td class="text-muted d-none d-md-table-cell">@${u.username}</td>
         <td>${jobRoleBadge(u.job_role)}</td>
-        <td>${statusBadge(u.is_online)}</td>
-        <td class="text-muted" style="font-size:13px;">${u.created_at || "—"}</td>
+        <td class="d-none d-md-table-cell">${statusBadge(u.is_online)}</td>
+        <td class="text-muted d-none d-md-table-cell" style="font-size:13px;">${u.created_at || "—"}</td>
         <td class="text-end pe-4">
           <button
             class="btn btn-sm btn-outline-warning me-1"
@@ -506,7 +506,7 @@ function loadCapacity() {
           <td>${s.occupied_seats ?? 0}</td>
           <td>${s.seats_left ?? "—"}</td>
           <td class="text-end pe-4">
-            <button class="btn btn-sm btn-outline-primary" onclick="saveCapacity(${s.id})">Save</button>
+            <button class="btn btn-sm btn-outline-primary py-2" onclick="saveCapacity(${s.id})">Save</button>
           </td>
         </tr>
       `).join("");

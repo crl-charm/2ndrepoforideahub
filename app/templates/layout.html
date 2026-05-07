@@ -110,11 +110,16 @@
 <body>
 
 <!-- TOP NAVBAR -->
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-4">
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-3 px-md-4">
 
     <a class="navbar-brand fw-bold text-warning" href="/dashboard">IdeaHub</a>
 
-    <div class="ms-auto">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="mainNavbarNav">
+      <div class="ms-auto d-grid d-lg-flex gap-2">
 
         <a class="nav-link top-nav-link d-inline me-3" href="/dashboard">Dashboard</a>
         <a class="nav-link top-nav-link d-inline me-3" href="/orders">
@@ -128,6 +133,7 @@
         <a class="nav-link top-nav-link d-inline me-3" href="/profile">Profile</a>
         <a class="nav-link top-nav-link d-inline text-danger" href="/logout">Logout</a>
 
+      </div>
     </div>
 
 </nav>
@@ -135,7 +141,7 @@
 <div class="d-flex">
 
     <!-- SIDEBAR -->
-    <div class="sidebar p-3">
+    <div class="sidebar p-3 d-none d-md-block">
 
         <h6 class="text-muted mb-3">Navigation</h6>
 
@@ -174,7 +180,7 @@
     </div>
 
     <!-- MAIN CONTENT -->
-    <div class="content p-4 w-100">
+    <div class="content p-3 p-md-4 w-100">
 
         {% block content %}
         {% endblock %}
