@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime, timedelta
+from datetime import datetime
 from app.utils.auth import login_required
 
-from app import socketio
+from app.core import get_notifier
 from app.core.clock import SystemClock
-from app.core.notifier import SocketIONotifier
+from app.dto.serializers import serialize_transaction
 from app.repositories.session_repository import SessionRepository
 from app.services.session_service import SessionService
 
@@ -15,7 +15,7 @@ session_bp = Blueprint("session_routes", __name__)
 _service = SessionService(
     repo=SessionRepository(),
     clock=SystemClock(),
-    notifier=SocketIONotifier(socketio=socketio),
+    notifier=get_notifier(),
 )
 
 
@@ -71,7 +71,12 @@ def preview_checkout(session_id):
 @session_bp.route("/api/checkout-records")
 @login_required
 def checkout_records():
-    transactions = _service.checkout_records()
+    page = request.args.get("page", type=int)
+    per_page = request.args.get("per_page", type=int)
+    if per_page is not None:
+        per_page = min(per_page, 100)
+    transactions = _service.checkout_records(page=page, per_page=per_page)
+    tx_items = transactions.items if hasattr(transactions, "items") else transactions
 
     # Optional date-range filter (YYYY-MM-DD strings from the frontend)
     date_from_str = request.args.get("date_from", "").strip()
@@ -88,35 +93,12 @@ def checkout_records():
         pass  # Ignore bad dates — return unfiltered
 
     result = []
-
-    for tx in transactions:
-        sess = tx.session
-
-        # Apply date filter on created_at (UTC date is fine for grouping purposes)
+    for tx in tx_items:
         if date_from and tx.created_at.date() < date_from:
             continue
         if date_to and tx.created_at.date() > date_to:
             continue
-
-        time_in_text = (sess.time_in + timedelta(hours=8)).strftime("%B %d, %Y %I:%M %p") if sess and sess.time_in else "N/A"
-        time_out_text = (sess.time_out + timedelta(hours=8)).strftime("%B %d, %Y %I:%M %p") if sess and sess.time_out else "N/A"
-
-        seconds_spent = int((sess.time_out - sess.time_in).total_seconds()) if sess and sess.time_in and sess.time_out else None
-        minutes_spent = round(seconds_spent / 60, 2) if seconds_spent is not None else None
-
-        result.append({
-            "transaction_id": tx.id,
-            "customer_name": sess.customer_name if sess else "N/A",
-            "space_type": sess.space_type.name if sess and sess.space_type else "N/A",
-            "time_in": time_in_text,
-            "time_out": time_out_text,
-            "time_bill": float(tx.time_bill),
-            "food_bill": float(tx.food_bill),
-            "total_bill": float(tx.total_bill),
-            "seconds_spent": seconds_spent,
-            "minutes_spent": minutes_spent,
-            "created_date": tx.created_at.strftime("%Y-%m-%d")
-        })
+        result.append(serialize_transaction(tx))
 
     return jsonify(result)
 

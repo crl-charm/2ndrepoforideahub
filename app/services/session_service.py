@@ -5,8 +5,7 @@ from datetime import timedelta
 from decimal import Decimal
 from typing import Any, Optional
 
-from app.core.clock import Clock
-from app.core.notifier import Notifier
+from app.core.interfaces import Clock, Notifier
 from app.models import CustomerSession, Transaction
 from app.repositories.session_repository import SessionRepository
 
@@ -29,7 +28,7 @@ class SessionService:
         if number_of_people <= 0:
             return {"error": "Number of people must be at least 1."}, 400
 
-        now = self.clock.utcnow()
+        now = self.clock.now()
         sess = CustomerSession(
             customer_name=customer_name,
             school=school,
@@ -66,7 +65,7 @@ class SessionService:
         boardroom_by_session = self.repo.get_active_boardroom_bookings_by_session_ids(session_ids)
 
         result: list[dict[str, Any]] = []
-        now = self.clock.utcnow()
+        now = self.clock.now()
 
         for sess in sessions:
             time_difference = now - sess.time_in
@@ -99,7 +98,7 @@ class SessionService:
         if not sess:
             return {"error": "Session not found"}, 404
 
-        now = self.clock.utcnow()
+        now = self.clock.now()
         minutes_used = (now - sess.time_in).total_seconds() / 60
         rate = sess.space_type.rate_per_minute
         time_bill = (Decimal(str(minutes_used)) * rate).quantize(Decimal("0.01"))
@@ -121,7 +120,7 @@ class SessionService:
         if sess.status == "completed":
             return {"error": "Session already checked out"}, 400
 
-        time_out = self.clock.utcnow()
+        time_out = self.clock.now()
         minutes_used = (time_out - sess.time_in).total_seconds() / 60
         rate = sess.space_type.rate_per_minute
         time_bill = (Decimal(str(minutes_used)) * rate).quantize(Decimal("0.01"))
@@ -153,7 +152,9 @@ class SessionService:
             "status": sess.status,
         }
 
-    def checkout_records(self) -> list[Transaction]:
+    def checkout_records(self, page: int | None = None, per_page: int | None = None):
+        if page and per_page:
+            return self.repo.list_transactions_paginated(page=page, per_page=per_page)
         return self.repo.list_transactions()
 
     def space_availability(self) -> list[dict[str, Any]]:

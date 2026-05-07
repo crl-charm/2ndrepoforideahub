@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterable, Optional, Tuple
+from typing import Iterable, Optional
 
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from app import db
 from app.models import BoardroomBooking, CustomerSession, Order, OrderItem, SpaceType, Transaction
@@ -13,10 +14,19 @@ from app.models import BoardroomBooking, CustomerSession, Order, OrderItem, Spac
 @dataclass(frozen=True)
 class SessionRepository:
     def get_session(self, session_id: int) -> Optional[CustomerSession]:
-        return CustomerSession.query.get(session_id)
+        return (
+            CustomerSession.query.options(selectinload(CustomerSession.space_type))
+            .filter_by(id=session_id)
+            .first()
+        )
 
     def get_active_sessions(self) -> list[CustomerSession]:
-        return CustomerSession.query.filter_by(status="active").all()
+        return (
+            CustomerSession.query.options(selectinload(CustomerSession.space_type))
+            .filter_by(status="active")
+            .order_by(CustomerSession.time_in.desc())
+            .all()
+        )
 
     def get_active_boardroom_bookings_by_session_ids(self, session_ids: Iterable[int]) -> dict[int, BoardroomBooking]:
         session_ids = list(session_ids)
@@ -71,7 +81,22 @@ class SessionRepository:
         return float(total)
 
     def list_transactions(self) -> list[Transaction]:
-        return Transaction.query.order_by(Transaction.created_at.desc()).all()
+        return (
+            Transaction.query.options(
+                selectinload(Transaction.session).selectinload(CustomerSession.space_type)
+            )
+            .order_by(Transaction.created_at.desc())
+            .all()
+        )
+
+    def list_transactions_paginated(self, page: int, per_page: int):
+        return (
+            Transaction.query.options(
+                selectinload(Transaction.session).selectinload(CustomerSession.space_type)
+            )
+            .order_by(Transaction.created_at.desc())
+            .paginate(page=page, per_page=per_page, error_out=False)
+        )
 
     def list_space_types_for_availability(self) -> list[SpaceType]:
         return SpaceType.query.filter(SpaceType.name.in_(["Regular Lounge", "Premium Lounge"])).all()

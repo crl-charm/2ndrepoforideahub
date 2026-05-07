@@ -1,13 +1,14 @@
 from flask import Blueprint, jsonify, request, session
-from datetime import datetime, timedelta
-from decimal import Decimal
 from app.utils.auth import login_required
 
-from app.models import Transaction
+from app.core.clock import SystemClock
+from app.repositories.sales_repository import SalesRepository
+from app.services.sales_service import SalesService
 
 
 # Blueprint for sales routes
 sales_bp = Blueprint("sales_routes", __name__)
+_service = SalesService(repo=SalesRepository(), clock=SystemClock())
 
 
 def admin_only_json():
@@ -26,55 +27,7 @@ def daily_sales():
     if guard:
         return guard
 
-    today = datetime.utcnow().date()
-
-    transactions = Transaction.query.all()
-
-    total_revenue = Decimal("0.00")
-    total_food = Decimal("0.00")
-    total_space = Decimal("0.00")
-
-    transaction_count = 0
-
-    for t in transactions:
-
-        if t.created_at.date() == today:
-
-            total_revenue += t.total_bill
-            total_food += t.food_bill
-            total_space += t.time_bill
-            transaction_count += 1
-
-    return jsonify({
-        "date": str(today),
-        "transactions": transaction_count,
-        "total_revenue": float(total_revenue),
-        "space_revenue": float(total_space),
-        "food_revenue": float(total_food)
-    })
-
-
-def summarize_sales(start_date, end_date):
-    transactions = Transaction.query.all()
-    total_revenue = Decimal("0.00")
-    total_food = Decimal("0.00")
-    total_space = Decimal("0.00")
-    transaction_count = 0
-
-    for t in transactions:
-        tx_date = t.created_at.date()
-        if start_date <= tx_date <= end_date:
-            total_revenue += t.total_bill
-            total_food += t.food_bill
-            total_space += t.time_bill
-            transaction_count += 1
-
-    return {
-        "transactions": transaction_count,
-        "total_revenue": float(total_revenue),
-        "space_revenue": float(total_space),
-        "food_revenue": float(total_food)
-    }
+    return jsonify(_service.daily_sales())
 
 
 @sales_bp.route("/api/sales-summary")
@@ -85,27 +38,7 @@ def sales_summary():
         return guard
 
     period = request.args.get("period", "today")
-    today = datetime.utcnow().date()
-
-    if period == "yesterday":
-        start_date = today - timedelta(days=1)
-        end_date = start_date
-    elif period == "7days":
-        start_date = today - timedelta(days=6)
-        end_date = today
-    elif period == "1month":
-        start_date = today - timedelta(days=29)
-        end_date = today
-    else:
-        start_date = today
-        end_date = today
-
-    return jsonify({
-        "period": period,
-        "start_date": str(start_date),
-        "end_date": str(end_date),
-        **summarize_sales(start_date, end_date)
-    })
+    return jsonify(_service.sales_summary(period))
 
 
 @sales_bp.route("/api/sales-compare")
@@ -115,17 +48,4 @@ def sales_compare():
     if guard:
         return guard
 
-    today = datetime.utcnow().date()
-
-    today_summary = summarize_sales(today, today)
-    yesterday = today - timedelta(days=1)
-    yesterday_summary = summarize_sales(yesterday, yesterday)
-    week_summary = summarize_sales(today - timedelta(days=6), today)
-    month_summary = summarize_sales(today - timedelta(days=29), today)
-
-    return jsonify({
-        "today": today_summary,
-        "yesterday": yesterday_summary,
-        "last_7_days": week_summary,
-        "last_30_days": month_summary
-    })
+    return jsonify(_service.sales_compare())

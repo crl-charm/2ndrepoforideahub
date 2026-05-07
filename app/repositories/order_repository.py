@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from sqlalchemy import func
+from sqlalchemy.orm import selectinload
 
 from app import db
 from app.models import CustomerSession, MenuItem, Order, OrderItem
@@ -12,13 +13,21 @@ from app.models import CustomerSession, MenuItem, Order, OrderItem
 @dataclass(frozen=True)
 class OrderRepository:
     def list_menu_items(self) -> list[MenuItem]:
-        return MenuItem.query.all()
+        return MenuItem.query.order_by(MenuItem.category.asc(), MenuItem.name.asc()).all()
 
     def get_session(self, session_id: int) -> Optional[CustomerSession]:
-        return CustomerSession.query.get(session_id)
+        return (
+            CustomerSession.query.options(selectinload(CustomerSession.space_type))
+            .filter_by(id=session_id)
+            .first()
+        )
 
     def get_order(self, order_id: int) -> Optional[Order]:
-        return Order.query.get(order_id)
+        return (
+            Order.query.options(selectinload(Order.items).selectinload(OrderItem.menu_item))
+            .filter_by(id=order_id)
+            .first()
+        )
 
     def get_order_item(self, item_id: int) -> Optional[OrderItem]:
         return OrderItem.query.get(item_id)
@@ -48,10 +57,30 @@ class OrderRepository:
         return int(new_order.id)
 
     def list_orders_for_session(self, session_id: int, include_done: bool) -> list[Order]:
-        q = Order.query.filter_by(customer_session_id=session_id)
+        q = (
+            Order.query.options(
+                selectinload(Order.items).selectinload(OrderItem.menu_item),
+                selectinload(Order.handler),
+            )
+            .filter_by(customer_session_id=session_id)
+            .order_by(Order.id.desc())
+        )
         if not include_done:
             q = q.filter(Order.status != "done")
         return q.all()
+
+    def list_active_session_orders_summary(self):
+        return (
+            CustomerSession.query.options(
+                selectinload(CustomerSession.space_type),
+                selectinload(CustomerSession.orders)
+                .selectinload(Order.items)
+                .selectinload(OrderItem.menu_item),
+            )
+            .filter(CustomerSession.status == "active")
+            .order_by(CustomerSession.time_in.desc())
+            .all()
+        )
 
     def pending_counts(self) -> dict[str, int]:
         pending_sessions = (
@@ -76,4 +105,17 @@ class OrderRepository:
 
     def commit(self) -> None:
         db.session.commit()
+
+    def mark_session_served(self, session_id: int) -> int:
+        updated_orders = (
+            Order.query.filter(Order.customer_session_id == session_id, Order.status != "done")
+            .update({"status": "done"}, synchronize_session=False)
+        )
+        (
+            OrderItem.query.join(Order, OrderItem.order_id == Order.id)
+            .filter(Order.customer_session_id == session_id)
+            .update({"status": "done"}, synchronize_session=False)
+        )
+        db.session.commit()
+        return int(updated_orders or 0)
 
