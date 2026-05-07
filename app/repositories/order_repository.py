@@ -107,15 +107,18 @@ class OrderRepository:
         db.session.commit()
 
     def mark_session_served(self, session_id: int) -> int:
+        session_order_ids = [
+            row.id for row in Order.query.with_entities(Order.id).filter(Order.customer_session_id == session_id).all()
+        ]
         updated_orders = (
-            Order.query.filter(Order.customer_session_id == session_id, Order.status != "done")
+            Order.query.filter(Order.id.in_(session_order_ids), Order.status != "done")
             .update({"status": "done"}, synchronize_session=False)
-        )
-        (
-            OrderItem.query.join(Order, OrderItem.order_id == Order.id)
-            .filter(Order.customer_session_id == session_id)
-            .update({"status": "done"}, synchronize_session=False)
-        )
+        ) if session_order_ids else 0
+        if session_order_ids:
+            (
+                OrderItem.query.filter(OrderItem.order_id.in_(session_order_ids))
+                .update({"status": "done"}, synchronize_session=False)
+            )
         db.session.commit()
         return int(updated_orders or 0)
 

@@ -28,14 +28,19 @@ def admin_required(view_func):
 # ── Registration page (GET) ───────────────────────────────────────────────────
 
 @admin_bp.route("/register")
+@login_required
+@admin_required
 def register_page():
-    return render_template("register.html")
+    # Private system: registration is admin-only via the admin panel modal.
+    return redirect("/admin")
 
 
 # ── Register API (POST) ───────────────────────────────────────────────────────
 # Used by both the public register page AND the admin "Add User" modal
 
 @admin_bp.route("/api/register", methods=["POST"])
+@login_required
+@admin_required
 def register_api():
     payload = _service.register_staff(request.get_json() or {})
     if isinstance(payload, tuple):

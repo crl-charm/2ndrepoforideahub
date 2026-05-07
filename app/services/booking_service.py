@@ -25,11 +25,22 @@ class BookingService:
         purpose = data.get("purpose")
         if not all([customer_name, date_str, start_time_str, end_time_str, number_of_people]):
             return {"error": "Missing required fields"}, 400
+        now = self.clock.now()
         selected_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         start_time = datetime.strptime(start_time_str, "%H:%M").time()
         end_time = datetime.strptime(end_time_str, "%H:%M").time()
+        try:
+            people_count = int(number_of_people)
+        except (TypeError, ValueError):
+            return {"error": "Number of people must be a valid number"}, 400
+        if people_count <= 0:
+            return {"error": "Number of people must be greater than 0"}, 400
         if end_time <= start_time:
             return {"error": "End time must be after start time"}, 400
+        if selected_date < now.date():
+            return {"error": "Booking date cannot be in the past"}, 400
+        if selected_date == now.date() and datetime.combine(selected_date, end_time) <= now:
+            return {"error": "Booking end time must be in the future"}, 400
         conflict = self.repo.find_conflict(selected_date, start_time, end_time)
         if conflict:
             return {
@@ -42,7 +53,7 @@ class BookingService:
             date=selected_date,
             start_time=start_time,
             end_time=end_time,
-            number_of_people=int(number_of_people),
+            number_of_people=people_count,
             course=(course or "").strip() or None,
             purpose=purpose,
             status="booked",
@@ -79,6 +90,9 @@ class BookingService:
             return {"error": "Booking not found"}, 404
         if booking.status != "booked":
             return {"error": "Only booked reservations can be started."}, 400
+        now = self.clock.now()
+        if booking.date != now.date():
+            return {"error": "Booking can only be started on its scheduled date."}, 400
         boardroom = self.repo.get_boardroom_space()
         if not boardroom:
             return {"error": "Boardroom space is missing. Please seed spaces first."}, 500
@@ -87,7 +101,6 @@ class BookingService:
         if boardroom.capacity and (occupied + requested) > boardroom.capacity:
             seats_left = max(int(boardroom.capacity) - int(occupied), 0)
             return {"error": f"Boardroom has only {seats_left} seat(s) left."}, 409
-        now = self.clock.now()
         session = self.repo.create_customer_session_for_booking(booking, boardroom.id, now)
         booking.status = "active"
         booking.started_at = now

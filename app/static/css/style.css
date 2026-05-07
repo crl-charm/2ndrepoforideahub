@@ -21,7 +21,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  min-height: 64px;
   z-index: 1000;
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(6px);
@@ -32,16 +32,18 @@ body {
 }
 
 .top-nav-link {
-  color: var(--muted) !important;
+  color: #374151 !important;
   border-radius: 8px;
   padding: 6px 10px !important;
   transition: all 0.2s ease;
+  font-weight: 600;
 }
 
 .top-nav-link:hover,
 .top-nav-link.active {
-  color: var(--text) !important;
+  color: #111827 !important;
   background: #f3f4f6;
+  border: 1px solid #e5e7eb;
 }
 
 .sidebar {
@@ -252,14 +254,48 @@ body {
 }
 
 @media (max-width: 767.98px) {
+  .navbar {
+    height: auto;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .navbar-collapse {
+    background: #fff;
+    padding: 8px 0;
+    border-top: 1px solid #e5e7eb;
+  }
+
   .content {
     margin-left: 0;
-    margin-top: 74px;
+    margin-top: 128px;
     padding: 12px;
   }
 
   .top-nav-link {
     width: 100%;
     display: block;
+    padding: 10px 12px !important;
+  }
+
+  .mobile-quick-nav {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    padding: 8px;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .mobile-quick-nav .btn {
+    font-size: 12px;
+    min-height: 40px;
+    padding: 6px;
+    border-radius: 8px;
   }
 }
