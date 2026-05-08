@@ -1,0 +1,180 @@
+{% extends "layout.html" %}
+
+{% block title %}Staff Performance - IdeaHub{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Staff Performance Leaderboard</h1>
+    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addLogModal">
+      + Log Performance
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5>Leaderboard</h5>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Staff</th>
+            <th>Shift Date</th>
+            <th>Orders</th>
+            <th>Avg Order Time</th>
+            <th>Sessions</th>
+            <th>Upsells</th>
+            <th>Score</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          {% for log in logs %}
+          <tr>
+            <td></td>
+            <td>{{ log.username }}</td>
+            <td>{{ log.shift_date }}</td>
+            <td>{{ log.orders_handled }}</td>
+            <td>{{ "%.2f"|format(log.avg_order_minutes) }} min</td>
+            <td>{{ log.sessions_managed }}</td>
+            <td>{{ log.upsell_count }}</td>
+            <td><strong>{{ "%.2f"|format(log.score) }}</strong></td>
+            <td>{{ log.admin_note or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Log Modal -->
+<div class="modal fade" id="addLogModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Log Staff Performance</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Staff Member *</label>
+          <select id="userId" class="form-select" required>
+            <option value="">Select staff...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Shift Date *</label>
+          <input type="date" id="shiftDate" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Orders Handled *</label>
+          <input type="number" id="ordersHandled" class="form-control" value="0" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Avg Order Time (minutes) *</label>
+          <input type="number" id="avgOrderMin" class="form-control" step="0.01" value="0" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Sessions Managed *</label>
+          <input type="number" id="sessionsMgd" class="form-control" value="0" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Upsells *</label>
+          <input type="number" id="upsells" class="form-control" value="0" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Admin Notes</label>
+          <textarea id="adminNote" class="form-control" rows="2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" onclick="createLog()">Log</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadLogs();
+  loadStaff();
+});
+
+function loadStaff() {
+  fetch('/api/users').then(r => r.json()).then(data => {
+    if (data.success) {
+      const select = document.getElementById('userId');
+      select.innerHTML = '<option value="">Select staff...</option>';
+      data.data.forEach(user => {
+        select.innerHTML += `<option value="${user.id}">${user.username}</option>`;
+      });
+    }
+  });
+}
+
+function loadLogs() {
+  fetch('/admin/staff-performance/api/logs').then(r => r.json()).then(data => {
+    if (data.success) {
+      const tbody = document.getElementById('leaderboard-body');
+      tbody.innerHTML = '';
+      data.data.forEach((log, idx) => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td>${log.username}</td>
+            <td>${log.shift_date}</td>
+            <td>${log.orders_handled}</td>
+            <td>${log.avg_order_minutes.toFixed(2)} min</td>
+            <td>${log.sessions_managed}</td>
+            <td>${log.upsell_count}</td>
+            <td><strong>${log.score.toFixed(2)}</strong></td>
+            <td>${log.admin_note || '-'}</td>
+          </tr>
+        `;
+      });
+    }
+  });
+}
+
+function createLog() {
+  const payload = {
+    user_id: document.getElementById('userId').value,
+    shift_date: document.getElementById('shiftDate').value,
+    orders_handled: document.getElementById('ordersHandled').value,
+    avg_order_minutes: document.getElementById('avgOrderMin').value,
+    sessions_managed: document.getElementById('sessionsMgd').value,
+    upsell_count: document.getElementById('upsells').value,
+    admin_note: document.getElementById('adminNote').value,
+  };
+
+  fetch('/admin/staff-performance/api/logs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showToast('Performance logged', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addLogModal')).hide();
+      document.getElementById('userId').value = '';
+      document.getElementById('shiftDate').value = '';
+      document.getElementById('ordersHandled').value = '0';
+      document.getElementById('avgOrderMin').value = '0';
+      document.getElementById('sessionsMgd').value = '0';
+      document.getElementById('upsells').value = '0';
+      document.getElementById('adminNote').value = '';
+      loadLogs();
+    } else {
+      showToast('Error logging performance', 'error');
+    }
+  });
+}
+</script>
+{% endblock %}

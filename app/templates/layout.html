@@ -103,6 +103,34 @@
   from { width: 100%; }
   to   { width: 0%; }
 }
+
+/* Sidebar section labels */
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+  padding: 4px 8px 2px;
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+
+/* Sidebar collapse toggle */
+.sidebar-collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.sidebar-collapse-toggle .bi {
+  font-size: 11px;
+  transition: transform 0.2s;
+}
+.sidebar-collapse-toggle.collapsed .bi {
+  transform: rotate(-90deg);
+}
 </style>
 
 </head>
@@ -143,9 +171,13 @@
   <a class="btn btn-outline-dark" href="/orders">Orders</a>
   <a class="btn btn-outline-dark" href="/checkout-records">Records</a>
   <a class="btn btn-outline-dark" href="/lounge-booking">Booking</a>
-  {% if session.get("role") == "admin" %}
-  <a class="btn btn-outline-dark" href="/daily-sales">Sales</a>
-  {% endif %}
+  <a class="btn btn-outline-dark" href="/admin/inventory">Inventory</a>
+  <a class="btn btn-outline-dark" href="/admin/receivables">Debts</a>
+  <a class="btn btn-outline-dark" href="/admin/daily-balance">Balance</a>
+  <a class="btn btn-outline-dark" href="/admin/expenses">Expenses</a>
+  <a class="btn btn-outline-dark" href="/admin/staff-performance">Staff</a>
+  <a class="btn btn-outline-dark" href="/admin/menu">Menu</a>
+  <a class="btn btn-outline-dark" href="/admin/reservations">Reservations</a>
 </div>
 
 <div class="d-flex">
@@ -153,39 +185,98 @@
     <!-- SIDEBAR -->
     <div class="sidebar p-3 d-none d-md-block">
 
-        <h6 class="text-muted mb-3">Navigation</h6>
+        <!-- NAVIGATION -->
+        <div class="sidebar-section-label">Navigation</div>
 
-            <button class="btn w-100 text-start mb-2 sidebar-btn nav-btn" onclick="window.location.href='/dashboard'">
-                Dashboard
+        <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/dashboard'">
+            <i class="bi bi-grid me-2"></i>Dashboard
+        </button>
+
+        <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/checkout-records'">
+            <i class="bi bi-receipt me-2"></i>Checkout Records
+        </button>
+
+        {% if session.get("role") == "admin" %}
+        <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/daily-sales'">
+            <i class="bi bi-bar-chart me-2"></i>Daily Sales
+        </button>
+        {% endif %}
+
+        <button class="btn w-100 text-start mb-2 sidebar-btn nav-btn" onclick="window.location.href='/lounge-booking'">
+            <i class="bi bi-calendar-check me-2"></i>Boardroom Booking
+        </button>
+
+        <!-- SPACES -->
+        <div class="sidebar-section-label">Spaces</div>
+
+        <button class="btn w-100 text-start mb-1 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Regular%20Lounge'">
+            <i class="bi bi-person me-2"></i>Regular
+        </button>
+
+        <button class="btn w-100 text-start mb-1 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Premium%20Lounge'">
+            <i class="bi bi-star me-2"></i>Premium
+        </button>
+
+        <button class="btn w-100 text-start mb-2 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Boardroom'">
+            <i class="bi bi-building me-2"></i>Boardroom
+        </button>
+
+        <!-- MANAGEMENT -->
+        <div class="sidebar-section-label sidebar-collapse-toggle" data-bs-toggle="collapse" data-bs-target="#mgmtLinks">
+            <span>Management</span>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+
+        <div class="collapse show" id="mgmtLinks">
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/inventory'">
+                <i class="bi bi-boxes me-2"></i>Inventory
             </button>
 
-            <button class="btn w-100 text-start mb-2 sidebar-btn nav-btn" onclick="window.location.href='/checkout-records'">
-                Checkout Records
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/menu'">
+                <i class="bi bi-menu-button-wide me-2"></i>Menu
             </button>
 
-            {% if session.get("role") == "admin" %}
-            <button class="btn w-100 text-start mb-2 sidebar-btn nav-btn" onclick="window.location.href='/daily-sales'">
-                Daily Sales
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/reservations'">
+                <i class="bi bi-calendar-plus me-2"></i>Reservations
             </button>
-            {% endif %}
+        </div>
 
-            <button class="btn w-100 text-start mb-3 sidebar-btn nav-btn" onclick="window.location.href='/lounge-booking'">
-                Boardroom Booking
-            </button>
+        <!-- FINANCE -->
+        <div class="sidebar-section-label sidebar-collapse-toggle mt-1" data-bs-toggle="collapse" data-bs-target="#financeLinks">
+            <span>Finance</span>
+            <i class="bi bi-chevron-down"></i>
+        </div>
 
-        <h6 class="text-muted mb-2">Spaces</h6>
-
-            <button class="btn w-100 text-start mb-2 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Regular%20Lounge'">
-                Regular
-            </button>
-
-            <button class="btn w-100 text-start mb-2 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Premium%20Lounge'">
-                Premium
+        <div class="collapse show" id="financeLinks">
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/daily-balance'">
+                <i class="bi bi-cash-stack me-2"></i>Daily Balance
             </button>
 
-            <button class="btn w-100 text-start mb-2 sidebar-btn space-btn" onclick="window.location.href='/dashboard?space=Boardroom'">
-                Boardroom
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/expenses'">
+                <i class="bi bi-wallet2 me-2"></i>Expenses
             </button>
+
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/receivables'">
+                <i class="bi bi-people me-2"></i>Receivables
+                <span id="debt-badge" class="badge bg-danger ms-1" style="display:none;">!</span>
+            </button>
+        </div>
+
+        <!-- STAFF -->
+        <div class="sidebar-section-label sidebar-collapse-toggle mt-1" data-bs-toggle="collapse" data-bs-target="#staffLinks">
+            <span>Staff</span>
+            <i class="bi bi-chevron-down"></i>
+        </div>
+
+        <div class="collapse show" id="staffLinks">
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/staff-performance'">
+                <i class="bi bi-trophy me-2"></i>Performance
+            </button>
+
+            <button class="btn w-100 text-start mb-1 sidebar-btn nav-btn" onclick="window.location.href='/admin/analytics'">
+                <i class="bi bi-graph-up me-2"></i>Analytics
+            </button>
+        </div>
 
     </div>
 
@@ -230,9 +321,6 @@ function dismissToast(toast) {
 </script>
 
 <script>
-  // A small helper to reduce background traffic:
-  // - pauses polling when tab is hidden
-  // - avoids overlapping calls if the previous tick is still running
   window.createSmartPoller = function createSmartPoller(fn, intervalMs, opts) {
     opts = opts || {};
     const runImmediately = opts.runImmediately !== false;
@@ -243,23 +331,11 @@ function dismissToast(toast) {
 
     async function tick() {
       if (stopped) return;
-      if (document.hidden) {
-        schedule();
-        return;
-      }
-      if (inFlight) {
-        schedule();
-        return;
-      }
+      if (document.hidden) { schedule(); return; }
+      if (inFlight) { schedule(); return; }
       inFlight = true;
-      try {
-        await fn();
-      } catch (_) {
-        // swallow
-      } finally {
-        inFlight = false;
-        schedule();
-      }
+      try { await fn(); } catch (_) {}
+      finally { inFlight = false; schedule(); }
     }
 
     function schedule() {
@@ -275,27 +351,23 @@ function dismissToast(toast) {
 
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden && !stopped) {
-        // run a refresh soon after returning to the tab
         if (timer) window.clearTimeout(timer);
         timer = window.setTimeout(tick, 250);
       }
     });
 
-    if (runImmediately) {
-      window.setTimeout(tick, 0);
-    } else {
-      schedule();
-    }
-
+    if (runImmediately) { window.setTimeout(tick, 0); } else { schedule(); }
     return { stop };
   };
 </script>
 
 {% block scripts %}
 {% endblock %}
+
 <script>
   (function setActiveNavigation() {
     const path = window.location.pathname;
+
     document.querySelectorAll(".top-nav-link").forEach(link => {
       if (path === "/logout") return;
       const href = link.getAttribute("href");
@@ -306,12 +378,10 @@ function dismissToast(toast) {
 
     document.querySelectorAll(".nav-btn").forEach(btn => {
       const clickText = btn.getAttribute("onclick") || "";
-      if (
-        (path === "/dashboard" && clickText.includes("/dashboard'") && !window.location.search.includes("space=")) ||
-        (path === "/checkout-records" && clickText.includes("/checkout-records")) ||
-        (path === "/daily-sales" && clickText.includes("/daily-sales")) ||
-        (path === "/lounge-booking" && clickText.includes("/lounge-booking"))
-      ) {
+      const urlMatch = clickText.match(/href='([^']+)'/);
+      if (!urlMatch) return;
+      const btnPath = urlMatch[1].split("?")[0];
+      if (btnPath === path || (path.startsWith(btnPath) && btnPath !== "/dashboard")) {
         btn.classList.add("active");
       }
     });
@@ -322,7 +392,6 @@ function dismissToast(toast) {
   async function updateOrdersBadge() {
     const badge = document.getElementById("orders-badge");
     if (!badge) return;
-
     try {
       const res = await fetch("/api/orders/pending-count", { credentials: "include" });
       if (!res.ok) return;
@@ -336,8 +405,6 @@ function dismissToast(toast) {
       }
     } catch (_) {}
   }
-
-  // 15s is plenty for a badge and dramatically reduces traffic.
   window.createSmartPoller(updateOrdersBadge, 15000);
 </script>
 
@@ -358,7 +425,31 @@ function dismissToast(toast) {
         });
       } catch (_) {}
     }
-    // Overdue is not second-by-second critical; 60s is enough, and we pause when hidden.
+    window.createSmartPoller(poll, 60000);
+  })();
+</script>
+
+<script>
+  /* Poll for overdue receivables and show red dot on sidebar link */
+  (function debtDueNotifier() {
+    const alerted = new Set();
+    const badge = document.getElementById("debt-badge");
+    async function poll() {
+      try {
+        const res = await fetch("/admin/receivables/api/due-today", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success) return;
+        const due = data.data || [];
+        if (due.length > 0 && badge) badge.style.display = "inline-block";
+        due.forEach(rec => {
+          const key = String(rec.id);
+          if (alerted.has(key)) return;
+          alerted.add(key);
+          showToast(`Debt due today: ${rec.customer_name} owes ₱${rec.amount_owed}`, "warning");
+        });
+      } catch (_) {}
+    }
     window.createSmartPoller(poll, 60000);
   })();
 </script>
@@ -366,4 +457,3 @@ function dismissToast(toast) {
 </body>
 
 </html>
-

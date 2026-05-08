@@ -50,6 +50,26 @@ class SchemaMigrator:
                 "ALTER TABLE boardroom_bookings ADD COLUMN extended_minutes INT NOT NULL DEFAULT 0",
             ),
             ("boardroom_bookings", "course", "ALTER TABLE boardroom_bookings ADD COLUMN course VARCHAR(100) NULL"),
+            (
+                "customer_sessions",
+                "payment_method",
+                "ALTER TABLE customer_sessions ADD COLUMN payment_method VARCHAR(50) DEFAULT 'cash'",
+            ),
+            (
+                "customer_sessions",
+                "amount_tendered",
+                "ALTER TABLE customer_sessions ADD COLUMN amount_tendered DECIMAL(10,2) NULL",
+            ),
+            (
+                "menu_items",
+                "is_available",
+                "ALTER TABLE menu_items ADD COLUMN is_available BOOLEAN DEFAULT TRUE",
+            ),
+            (
+                "space_types",
+                "qr_token",
+                "ALTER TABLE space_types ADD COLUMN qr_token VARCHAR(50) NULL UNIQUE",
+            ),
         ]
         for table_name, column_name, ddl in checks:
             has_col = db.session.execute(

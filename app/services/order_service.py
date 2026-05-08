@@ -142,7 +142,7 @@ class OrderService:
         self.notifier.order_status_changed({"session_id": session_id, "status": "done"})
         return {"message": "Session marked as served", "session_id": session_id}
 
-    def void_item(self, item_id: int):
+    def void_item(self, item_id: int) -> dict[str, Any] | tuple[dict[str, Any], int]:
         item = self.repo.get_order_item(item_id)
         if not item:
             return {"error": "Item not found"}, 404
@@ -150,12 +150,43 @@ class OrderService:
             item.quantity -= 1
         else:
             from app import db
-
             db.session.delete(item)
         self.repo.commit()
         return {"message": "One item voided successfully"}
 
-    def toggle_order_item_status(self, item_id: int):
+    def create_from_qr(self, order_data: dict[str, Any]) -> dict[str, Any]:
+        space_type_id = order_data.get("space_type_id")
+        customer_name = order_data.get("customer_name", "Walk-in")
+        items = order_data.get("items", [])
+
+        if not items:
+            return {"error": "No items in order"}
+
+        from app.models import CustomerSession, SpaceType
+        space = self.repo.db.session.query(SpaceType).filter_by(id=space_type_id).first()
+        if not space:
+            return {"error": "Space not found"}
+
+        session = CustomerSession(
+            customer_name=customer_name,
+            space_type_id=space_type_id,
+            number_of_people=1,
+        )
+        self.repo.db.session.add(session)
+        self.repo.db.session.flush()
+
+        order_id = self.repo.add_order_with_items(
+            session_id=session.id,
+            handled_by=None,
+            items=items,
+        )
+        self.repo.db.session.commit()
+        self.notifier.order_status_changed(
+            {"order_id": order_id, "status": "preparing", "session_id": session.id}
+        )
+        return {"success": True, "data": {"order_id": order_id, "session_id": session.id}}
+
+    def toggle_order_item_status(self, item_id: int) -> dict[str, Any] | tuple[dict[str, Any], int]:
         item = self.repo.get_order_item(item_id)
         if not item:
             return {"error": "Item not found"}, 404
@@ -165,4 +196,3 @@ class OrderService:
             {"order_id": item.order_id, "item_id": item.id, "status": item.status}
         )
         return {"message": "Item status updated", "item_id": item_id, "status": item.status}
-

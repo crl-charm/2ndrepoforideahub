@@ -4,4 +4,5 @@ Flask-SocketIO
 PyMySQL
 SQLAlchemy
 bcrypt
-
+weasyprint
+qrcode

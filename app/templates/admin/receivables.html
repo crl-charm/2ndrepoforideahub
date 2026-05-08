@@ -1,0 +1,202 @@
+{% extends "layout.html" %}
+
+{% block title %}Receivables - IdeaHub{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Receivables / Debt Tracker</h1>
+    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addReceivableModal">
+      + New Receivable
+    </button>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <h5 class="card-title">Total Unpaid</h5>
+          <p class="card-text display-6">₱<span id="total-unpaid">0.00</span></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-warning text-dark">
+        <div class="card-body">
+          <h5 class="card-title">Unpaid Count</h5>
+          <p class="card-text display-6" id="unpaid-count">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5>All Receivables</h5>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Contact</th>
+            <th>Items</th>
+            <th>Amount Owed</th>
+            <th>Partial Paid</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="receivables-table-body">
+          {% for rec in receivables %}
+          <tr>
+            <td>{{ rec.customer_name }}</td>
+            <td>{{ rec.customer_contact or "-" }}</td>
+            <td>{{ rec.items }}</td>
+            <td>₱{{ "%.2f"|format(rec.amount_owed) }}</td>
+            <td>₱{{ "%.2f"|format(rec.partial_paid) }}</td>
+            <td>{{ rec.due_date }}</td>
+            <td>
+              {% if rec.paid %}
+              <span class="badge bg-success">Paid</span>
+              {% else %}
+              <span class="badge bg-danger">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not rec.paid %}
+              <button class="btn btn-sm btn-success" onclick="markPaid({{ rec.id }})">Mark Paid</button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Receivable Modal -->
+<div class="modal fade" id="addReceivableModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Receivable</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Customer Name *</label>
+          <input type="text" id="customerName" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Contact</label>
+          <input type="text" id="customerContact" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Items Description *</label>
+          <textarea id="itemsDesc" class="form-control" rows="3" required></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Amount Owed (₱) *</label>
+          <input type="number" id="amountOwed" class="form-control" step="0.01" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Due Date *</label>
+          <input type="date" id="dueDate" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" onclick="createReceivable()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  loadReceivables();
+});
+
+function loadReceivables() {
+  fetch('/admin/receivables/api/receivables').then(r => r.json()).then(data => {
+    if (data.success) {
+      const tbody = document.getElementById('receivables-table-body');
+      tbody.innerHTML = '';
+      let totalUnpaid = 0;
+      let unpaidCount = 0;
+      data.data.forEach(rec => {
+        if (!rec.paid) {
+          totalUnpaid += rec.amount_owed - rec.partial_paid;
+          unpaidCount++;
+        }
+        tbody.innerHTML += `
+          <tr>
+            <td>${rec.customer_name}</td>
+            <td>${rec.customer_contact || '-'}</td>
+            <td>${rec.items}</td>
+            <td>₱${rec.amount_owed.toFixed(2)}</td>
+            <td>₱${rec.partial_paid.toFixed(2)}</td>
+            <td>${rec.due_date}</td>
+            <td>${rec.paid ? '<span class="badge bg-success">Paid</span>' : '<span class="badge bg-danger">Unpaid</span>'}</td>
+            <td>${!rec.paid ? `<button class="btn btn-sm btn-success" onclick="markPaid(${rec.id})">Mark Paid</button>` : ''}</td>
+          </tr>
+        `;
+      });
+      document.getElementById('total-unpaid').textContent = totalUnpaid.toFixed(2);
+      document.getElementById('unpaid-count').textContent = unpaidCount;
+    }
+  });
+}
+
+function createReceivable() {
+  const payload = {
+    customer_name: document.getElementById('customerName').value,
+    customer_contact: document.getElementById('customerContact').value,
+    items_description: document.getElementById('itemsDesc').value,
+    amount_owed: document.getElementById('amountOwed').value,
+    due_date: document.getElementById('dueDate').value,
+  };
+
+  fetch('/admin/receivables/api/receivables', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showToast('Receivable created', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addReceivableModal')).hide();
+      document.getElementById('customerName').value = '';
+      document.getElementById('customerContact').value = '';
+      document.getElementById('itemsDesc').value = '';
+      document.getElementById('amountOwed').value = '';
+      document.getElementById('dueDate').value = '';
+      loadReceivables();
+    } else {
+      showToast('Error creating receivable', 'error');
+    }
+  });
+}
+
+function markPaid(recId) {
+  if (!confirm('Mark this receivable as paid?')) return;
+  fetch(`/admin/receivables/api/receivables/${recId}/mark-paid`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' }
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showToast('Marked as paid', 'success');
+      loadReceivables();
+    } else {
+      showToast('Error marking as paid', 'error');
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,285 @@
+{% extends "layout.html" %}
+
+{% block title %}Inventory Management - IdeaHub{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Inventory Management</h1>
+    <button class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#addItemModal">
+      + Add Item
+    </button>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <h5 class="card-title">Low Stock Items</h5>
+          <p class="card-text display-6" id="low-stock-count">0</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <h5 class="card-title">Total Items</h5>
+          <p class="card-text display-6" id="total-items-count">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5>Inventory Items</h5>
+    </div>
+    <div class="card-body">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Menu Item</th>
+            <th>Stock</th>
+            <th>Unit</th>
+            <th>Threshold</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-table-body">
+          {% for item in items %}
+          <tr>
+            <td>{{ item.menu_item_name }}</td>
+            <td>{{ item.stock_qty }}</td>
+            <td>{{ item.unit }}</td>
+            <td>{{ item.low_stock_threshold }}</td>
+            <td>
+              {% if item.is_low %}
+              <span class="badge bg-danger">Low Stock</span>
+              {% else %}
+              <span class="badge bg-success">OK</span>
+              {% endif %}
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="editItem({{ item.id }})">Edit</button>
+              <button class="btn btn-sm btn-info" onclick="viewLogs({{ item.id }})">Logs</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Add Item Modal -->
+<div class="modal fade" id="addItemModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Inventory Item</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Menu Item</label>
+          <select id="menuItemSelect" class="form-select" required>
+            <option value="">Select a menu item...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Initial Stock</label>
+          <input type="number" id="initialStock" class="form-control" value="0" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Unit</label>
+          <input type="text" id="unit" class="form-control" value="pieces" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Low Stock Threshold</label>
+          <input type="number" id="threshold" class="form-control" value="10" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" onclick="createItem()">Create</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Stock Modal -->
+<div class="modal fade" id="editStockModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Update Stock</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">New Quantity</label>
+          <input type="number" id="newQty" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Reason</label>
+          <select id="reason" class="form-select" required>
+            <option value="Restock">Restock</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Expired">Expired</option>
+            <option value="Inventory count">Inventory count</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-warning" onclick="updateStock()">Update</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Logs Modal -->
+<div class="modal fade" id="logsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Inventory Logs</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Change</th>
+              <th>Reason</th>
+              <th>Changed By</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentItemId = null;
+let menuItems = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadMenuItems();
+  loadInventory();
+});
+
+function loadMenuItems() {
+  fetch('/api/menu-items').then(r => r.json()).then(data => {
+    menuItems = data.success ? data.data : [];
+    const select = document.getElementById('menuItemSelect');
+    select.innerHTML = '<option value="">Select a menu item...</option>';
+    menuItems.forEach(item => {
+      select.innerHTML += `<option value="${item.id}">${item.name}</option>`;
+    });
+  });
+}
+
+function loadInventory() {
+  fetch('/admin/inventory/api/items').then(r => r.json()).then(data => {
+    if (data.success) {
+      const tbody = document.getElementById('inventory-table-body');
+      tbody.innerHTML = '';
+      data.data.forEach(item => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${item.menu_item_name}</td>
+            <td>${item.stock_qty}</td>
+            <td>${item.unit}</td>
+            <td>${item.low_stock_threshold}</td>
+            <td>${item.is_low ? '<span class="badge bg-danger">Low Stock</span>' : '<span class="badge bg-success">OK</span>'}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="editItem(${item.id})">Edit</button>
+              <button class="btn btn-sm btn-info" onclick="viewLogs(${item.id})">Logs</button>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('total-items-count').textContent = data.data.length;
+      const lowStock = data.data.filter(i => i.is_low).length;
+      document.getElementById('low-stock-count').textContent = lowStock;
+    }
+  });
+}
+
+function createItem() {
+  const menuItemId = document.getElementById('menuItemSelect').value;
+  const stockQty = document.getElementById('initialStock').value;
+  const unit = document.getElementById('unit').value;
+  const threshold = document.getElementById('threshold').value;
+
+  fetch('/admin/inventory/api/items', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ menu_item_id: menuItemId, stock_qty: stockQty, unit, low_stock_threshold: threshold })
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showToast('Inventory item created', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('addItemModal')).hide();
+      loadInventory();
+    } else {
+      showToast('Error creating item', 'error');
+    }
+  });
+}
+
+function editItem(itemId) {
+  currentItemId = itemId;
+  document.getElementById('newQty').value = '';
+  new bootstrap.Modal(document.getElementById('editStockModal')).show();
+}
+
+function updateStock() {
+  fetch(`/admin/inventory/api/items/${currentItemId}/stock`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      new_qty: document.getElementById('newQty').value,
+      reason: document.getElementById('reason').value
+    })
+  }).then(r => r.json()).then(data => {
+    if (data.success) {
+      showToast('Stock updated', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('editStockModal')).hide();
+      loadInventory();
+    } else {
+      showToast('Error updating stock', 'error');
+    }
+  });
+}
+
+function viewLogs(itemId) {
+  fetch(`/admin/inventory/api/items/${itemId}/logs`).then(r => r.json()).then(data => {
+    if (data.success) {
+      const tbody = document.getElementById('logs-body');
+      tbody.innerHTML = '';
+      data.data.forEach(log => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${log.created_at}</td>
+            <td>${log.change_qty > 0 ? '+' : ''}${log.change_qty}</td>
+            <td>${log.reason}</td>
+            <td>${log.changed_by}</td>
+          </tr>
+        `;
+      });
+      new bootstrap.Modal(document.getElementById('logsModal')).show();
+    }
+  });
+}
+</script>
+{% endblock %}
